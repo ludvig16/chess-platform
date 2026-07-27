@@ -1,6 +1,6 @@
-﻿namespace ChessPlatform.Users.Dtos;
+﻿namespace ChessPlatform.Features.Users.Dtos;
 
-public class UserResponseDto
+public class UserResponse
 {
     public required string Username { get; set; }
     public DateTime CreatedAt { get; set; }

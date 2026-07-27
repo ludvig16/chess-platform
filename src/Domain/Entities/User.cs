@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ChessPlatform.Users;
+namespace ChessPlatform.Domain.Entities;
 
 public class User
 {

@@ -1,9 +1,9 @@
-﻿using ChessPlatform.Infrastructure.Persistence;
-using ChessPlatform.Users.Dtos;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ChessPlatform.Users;
+namespace ChessPlatform.Features.Users;
 
+[Authorize]
 [Route("api/users")]
 [ApiController]
 public class UserController : ControllerBase

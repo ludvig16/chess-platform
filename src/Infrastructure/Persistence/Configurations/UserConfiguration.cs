@@ -1,4 +1,5 @@
-﻿using ChessPlatform.Users;
+﻿using ChessPlatform.Domain.Entities;
+using ChessPlatform.Features.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
