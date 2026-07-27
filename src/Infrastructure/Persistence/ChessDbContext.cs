@@ -6,16 +6,17 @@ namespace ChessPlatform.Infrastructure.Persistence;
 
 public class ChessDbContext : DbContext
 {
-    protected readonly IConfiguration Configuration;
+    private readonly IConfiguration _configuration;
 
     public ChessDbContext(IConfiguration configuration)
     {
-        Configuration = configuration;
+        _configuration = configuration;
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseNpgsql(Environment.GetEnvironmentVariable("DefaultConnection"));
+        optionsBuilder.UseNpgsql(_configuration["DefaultConnection"]);
+        
     }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)

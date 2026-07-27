@@ -9,11 +9,17 @@ namespace ChessPlatform.Features.Auth;
 
 public class JwtTokenService : ITokenService
 {
+    private readonly IConfiguration _configuration;
+
+    public JwtTokenService(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
 
     public LoginResponse CreateToken(User user)
     {
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JwtSettings__Key")!));
+            Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!));
 
         var credentials = new SigningCredentials(
             key,
@@ -29,8 +35,8 @@ public class JwtTokenService : ITokenService
         };
 
         var token = new JwtSecurityToken(
-            issuer: Environment.GetEnvironmentVariable("JwtSettings__Issuer"),
-            audience: Environment.GetEnvironmentVariable("JwtSettings__Audience"),
+            issuer: _configuration["JwtSettings:Issuer"],
+            audience: _configuration["JwtSettings:Audience"],
             claims: claims,
             expires: expires,
             signingCredentials: credentials);

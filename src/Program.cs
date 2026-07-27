@@ -2,13 +2,14 @@ using System.Text;
 using ChessPlatform.Features.Auth;
 using ChessPlatform.Features.Users;
 using ChessPlatform.Infrastructure.Persistence;
+using DotNetEnv.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-DotNetEnv.Env.Load();
-
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddDotNetEnv(".env");
 
 builder.Services.AddAuthentication(x =>
 {
@@ -19,10 +20,10 @@ builder.Services.AddAuthentication(x =>
 {
     x.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidIssuer = Environment.GetEnvironmentVariable("JwtSettings__Issuer"),
-        ValidAudience = Environment.GetEnvironmentVariable("JwtSettings__Audience"),
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JwtSettings__Key")!)),
+            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!)),
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
@@ -34,7 +35,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<ChessDbContext>(options =>
 {
-    options.UseNpgsql(Environment.GetEnvironmentVariable("DefaultConnection"));
+    options.UseNpgsql(builder.Configuration["DefaultConnection"]);
 });
 
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
