@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ChessPlatform.Api/ChessPlatform.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ChessPlatform.Api.Tests/ChessPlatform.Api.Tests.csproj" />
+  </Folder>
+</Solution>
