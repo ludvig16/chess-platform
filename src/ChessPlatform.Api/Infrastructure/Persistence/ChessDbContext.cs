@@ -19,4 +19,6 @@ public class ChessDbContext : DbContext
     }
     
     public DbSet<User> Users { get; set; }
+    public DbSet<Move> Moves { get; set; }
+    public DbSet<Game> Games { get; set; }
 }
