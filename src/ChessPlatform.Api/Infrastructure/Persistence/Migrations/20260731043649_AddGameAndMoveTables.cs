@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ChessPlatform.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class AddMoveAndGameTables : Migration
+    public partial class AddGameAndMoveTables : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,10 +18,10 @@ namespace ChessPlatform.Api.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    WhitePlayerId = table.Column<string>(type: "text", nullable: false),
-                    BlackPlayerId = table.Column<string>(type: "text", nullable: false),
+                    WhitePlayerId = table.Column<int>(type: "integer", nullable: true),
+                    BlackPlayerId = table.Column<int>(type: "integer", nullable: true),
                     Status = table.Column<string>(type: "text", nullable: false),
-                    CurrentFen = table.Column<string>(type: "text", nullable: false),
+                    CurrentFen = table.Column<string>(type: "text", nullable: true),
                     SideToMove = table.Column<string>(type: "text", nullable: false),
                     Termination = table.Column<string>(type: "text", nullable: true),
                     Winner = table.Column<string>(type: "text", nullable: true),

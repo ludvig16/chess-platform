@@ -4,11 +4,12 @@ public class Game
 {
     public int Id { get; set; }
     
-    public required string WhitePlayerId { get; set; }
-    public required string BlackPlayerId { get; set; }
+    public int? WhitePlayerId { get; set; }
+    public int? BlackPlayerId { get; set; }
     public GameStatus Status { get; set; }
-    public required string CurrentFen { get; set; }
+    public string? CurrentFen { get; set; }
     public PieceColor SideToMove { get; set; }
+    public required int MoveCount { get; set; }
     
     public GameTermination? Termination { get; set; }
     public Winner? Winner { get; set; }

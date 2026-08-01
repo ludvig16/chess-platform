@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ChessPlatform.Api.Migrations
 {
     [DbContext(typeof(ChessDbContext))]
-    [Migration("20260731030218_AddMoveAndGameTables")]
-    partial class AddMoveAndGameTables
+    [Migration("20260731043649_AddGameAndMoveTables")]
+    partial class AddGameAndMoveTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,9 +33,8 @@ namespace ChessPlatform.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("BlackPlayerId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int?>("BlackPlayerId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("BlackTimeRemainingMs")
                         .HasColumnType("integer");
@@ -44,7 +43,6 @@ namespace ChessPlatform.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CurrentFen")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("FinishedAt")
@@ -67,9 +65,8 @@ namespace ChessPlatform.Api.Migrations
                     b.Property<int>("TimeLimitMs")
                         .HasColumnType("integer");
 
-                    b.Property<string>("WhitePlayerId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int?>("WhitePlayerId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("WhiteTimeRemainingMs")
                         .HasColumnType("integer");
