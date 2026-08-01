@@ -10,6 +10,12 @@ namespace ChessPlatform.Api.Features.Games;
 
 public class GameService
 {
+    // 1 minute
+    private const int MinAllowedTimelimitMs = 60000;
+    
+    // 10 minutes
+    private const int MaxAllowedTimelimitMs = 600000;
+    
     private readonly ChessDbContext _db;
 
     public GameService(ChessDbContext db)
@@ -43,9 +49,8 @@ public class GameService
         {
             return Result<Game>.Failure(GameErrors.InvalidPieceColor);
         }
-
-        // min time limit: 1 minute, max time limit: 10 minutes
-        if (timeLimitMs is < 60000 or > 600000)
+        
+        if (timeLimitMs is < MinAllowedTimelimitMs or > MaxAllowedTimelimitMs)
         {
             return Result<Game>.Failure(GameErrors.InvalidTimeLimit);
         }
