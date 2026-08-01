@@ -1,0 +1,141 @@
+﻿using ChessDotNet;
+using ChessPlatform.Api.Domain.Entities;
+using ChessPlatform.Api.Features.Common;
+using ChessPlatform.Api.Features.Games.Dtos;
+using ChessPlatform.Api.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Move = ChessPlatform.Api.Domain.Entities.Move;
+
+namespace ChessPlatform.Api.Features.Games;
+
+public class GameService
+{
+    private readonly ChessDbContext _db;
+
+    public GameService(ChessDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<Result<Game>> GetGame(int gameId)
+    {
+        var game = await _db.Games
+            .Include(g => g.Moves)
+            .FirstOrDefaultAsync(g => g.Id == gameId);
+
+        return game is null ? Result<Game>.Failure(GameErrors.GameNotFound) : Result<Game>.Success(game);
+    }
+
+    public async Task<Result<Piece[][]>> GetBoard(int gameId)
+    {
+        var game = await _db.Games.FindAsync(gameId);
+        
+        if (game is null) return Result<Piece[][]>.Failure(GameErrors.GameNotFound);
+        
+        var chess = new ChessGame(game.CurrentFen);
+
+        return Result<Piece[][]>.Success(chess.GetBoard());
+    }
+
+    public async Task<Result<Game>> CreateGame(int userId, PieceColor chosenColor, int timeLimitMs)
+    {
+        if (!Enum.IsDefined(chosenColor))
+        {
+            return Result<Game>.Failure(GameErrors.InvalidPieceColor);
+        }
+
+        // min time limit: 1 minute, max time limit: 10 minutes
+        if (timeLimitMs is < 60000 or > 600000)
+        {
+            return Result<Game>.Failure(GameErrors.InvalidTimeLimit);
+        }
+        
+        var newGame = new Game
+        {
+            WhitePlayerId = chosenColor == PieceColor.White ? userId : null,
+            BlackPlayerId = chosenColor == PieceColor.Black ? userId : null,
+            Status = GameStatus.Waiting,
+            CurrentFen = new ChessGame().GetFen(),
+            SideToMove = PieceColor.White,
+            MoveCount = 0,
+            Termination = null,
+            Winner = null,
+            TimeLimitMs = timeLimitMs,
+            WhiteTimeRemainingMs = timeLimitMs,
+            BlackTimeRemainingMs = timeLimitMs,
+            CreatedAt = DateTime.UtcNow,
+            StartedAt = null,
+            FinishedAt = null
+        };
+
+        _db.Games.Add(newGame);
+        await _db.SaveChangesAsync();
+
+        return Result<Game>.Success(newGame);
+    }
+
+    private static Result<Player> GetPlayer(Game game, int playerId)
+    {
+        if (game.WhitePlayerId == playerId) return Result<Player>.Success(Player.White);
+        if (game.BlackPlayerId == playerId) return Result<Player>.Success(Player.Black);
+
+        return Result<Player>.Failure(GameErrors.NotPlayerInGame);
+    }
+    
+    private static Result<bool> TryApplyMove(ChessGame chess, Player player, CreateMoveRequest request)
+    {
+        if (chess.WhoseTurn != player) return Result<bool>.Failure(GameErrors.NotYourTurn);
+
+        var move = new ChessDotNet.Move(request.From, request.To, player);
+
+        if (!chess.IsValidMove(move)) return Result<bool>.Failure(GameErrors.InvalidMove);
+
+        chess.MakeMove(move, true);
+
+        return Result<bool>.Success(true);
+    }
+
+    private static Move CreateMove(Game game, ChessGame chess, CreateMoveRequest request)
+    {
+        game.CurrentFen = chess.GetFen();
+        game.MoveCount++;
+
+        game.SideToMove = chess.WhoseTurn == Player.White ? PieceColor.White : PieceColor.Black;
+
+        return new Move
+        {
+            GameId = game.Id,
+            From = request.From,
+            To = request.To,
+            MoveNumber = game.MoveCount,
+            FenAfterMove = game.CurrentFen
+        };
+    }
+
+    public async Task<Result<Move>> MakeMove(int playerId, int gameId, CreateMoveRequest request)
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        
+        var game = await _db.Games.FindAsync(gameId);
+
+        if (game is null) return Result<Move>.Failure(GameErrors.GameNotFound);
+        
+        var chess = new ChessGame(game.CurrentFen);
+        
+        var player = GetPlayer(game, playerId);
+
+        if (player.IsFailure) return Result<Move>.Failure(player.Error);
+
+        var moveResult = TryApplyMove(chess, player.Value, request);
+
+        if (moveResult.IsFailure) return Result<Move>.Failure(moveResult.Error);
+        
+        var databaseMove = CreateMove(game, chess, request);
+        
+        _db.Moves.Add(databaseMove);
+        await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return Result<Move>.Success(databaseMove);
+    }
+}

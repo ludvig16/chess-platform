@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using ChessPlatform.Api.Features.Auth;
+using ChessPlatform.Api.Features.Games;
 using ChessPlatform.Api.Features.Users;
 using ChessPlatform.Api.Infrastructure.Persistence;
 using DotNetEnv.Configuration;
@@ -43,7 +45,16 @@ builder.Services.AddScoped<PasswordHasher>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 
-builder.Services.AddControllers();
+builder.Services.AddScoped<GameService>();
+
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter()
+        );
+    });
 
 var app = builder.Build();
 
