@@ -36,7 +36,7 @@ public class GameService
     {
         var game = await _db.Games
             .Include(g => g.Moves)
-            .FirstOrDefaultAsync(g => g.WhitePlayerId == userId || g.BlackPlayerId == userId);
+            .FirstOrDefaultAsync(g => (g.WhitePlayerId == userId || g.BlackPlayerId == userId) && g.Status != GameStatus.Finished);
 
         return game is null ? Result<Game>.Failure(GameErrors.NoJoinedGame) : Result<Game>.Success(game);
     }
