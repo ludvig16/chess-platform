@@ -11,6 +11,8 @@ public class GameErrors
     public static readonly Error NoJoinedGame = new ("Game.NoJoinedGame", "User has not joined a game");
     public static readonly Error AlreadyInGame = new ("Game.AlreadyInGame", "User has already joined a game");
     public static readonly Error GameIsFull = new ("Game.GameIsFull", "Game is full");
+    public static readonly Error GameNotInProgress = new ("Game.GameNotInProgress", "Cannot perform the requested action because the game is not in progress");
     public static readonly Error NotPlayerInGame = new ("Game.NotPlayerInGame", "Player with given userId not found in game");
     public static readonly Error NotYourTurn = new ("Game.NotYourTurn", "It is not your turn to play");
+    public static readonly Error InvalidAction = new ("Game.InvalidAction", "Invalid action", Environment.StackTrace);
 }

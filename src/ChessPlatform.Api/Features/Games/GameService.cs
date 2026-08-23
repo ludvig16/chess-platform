@@ -99,16 +99,20 @@ public class GameService
         return Result<Game>.Success(newGame);
     }
 
+    public static void StartGame(Game game)
+    {
+        game.Status = GameStatus.InProgress;
+        game.StartedAt = DateTime.UtcNow;
+    }
+
     public async Task<Result<Game>> JoinGameAsync(int gameId, int userId)
     {
+        var hasOngoingGame = await CheckIfUserHasAnOngoingGame(userId);
+        if (hasOngoingGame) return Result<Game>.Failure(GameErrors.AlreadyInGame);
+
         var game = await _db.Games.FindAsync(gameId);
         
         if (game is null) return Result<Game>.Failure(GameErrors.GameNotFound);
-
-        if (game.WhitePlayerId == userId || game.BlackPlayerId == userId)
-        {
-            return Result<Game>.Failure(GameErrors.AlreadyInGame);
-        }
 
         if (game.WhitePlayerId is not null && game.BlackPlayerId is not null)
         {
@@ -124,26 +128,7 @@ public class GameService
             game.BlackPlayerId = userId;
         }
 
-        game.Status = GameStatus.ReadyToStart;
-
-        _db.Games.Update(game);
-        await _db.SaveChangesAsync();
-        
-        return Result<Game>.Success(game);
-    }
-
-    public async Task<Result<Game>> StartGame(int gameId, int userId)
-    {
-        var game = await _db.Games.FindAsync(gameId);
-        
-        if (game is null) return Result<Game>.Failure(GameErrors.GameNotFound);
-
-        if (game.Status == GameStatus.InProgress || game.WhitePlayerId is null || game.BlackPlayerId is null)
-        {
-            return Result<Game>.Failure(GameErrors.NotPlayerInGame); // TODO CHANGE ERROR, maybe CannotStartGame
-        }
-        
-        game.Status = GameStatus.InProgress;
+        StartGame(game);
 
         _db.Games.Update(game);
         await _db.SaveChangesAsync();
@@ -205,6 +190,8 @@ public class GameService
         var game = await _db.Games.FindAsync(gameId);
 
         if (game is null) return Result<Game>.Failure(GameErrors.GameNotFound);
+
+        if (game.Status != GameStatus.InProgress) return Result<Game>.Failure(GameErrors.GameNotInProgress);
         
         var chess = new ChessGame(game.CurrentFen);
         
@@ -220,7 +207,6 @@ public class GameService
         
         _db.Moves.Add(databaseMove);
 
-        // check if game is finished
         var opponent = player.Value == Player.White ? Player.Black : Player.White;
 
         var gameTermination = CheckForGameEndCondition(chess, opponent);
@@ -235,12 +221,6 @@ public class GameService
 
         return Result<Game>.Success(game);
     }
-    
-    private static bool CheckWhoseTurn(string fen, Player player)
-    {
-        var chess = new ChessGame(fen);
-        return chess.WhoseTurn == player;
-    }
 
     public async Task<Result<Game>> ResignAsync(int gameId, int playerId)
     {
@@ -249,10 +229,8 @@ public class GameService
         
         var player = GetPlayer(game, playerId);
         if (player.IsFailure) return Result<Game>.Failure(player.Error);
-        
-        var isPlayersTurn = CheckWhoseTurn(game.CurrentFen!, player.Value);
-        
-        if (!isPlayersTurn) return Result<Game>.Failure(GameErrors.NotYourTurn);
+
+        if (game.Status != GameStatus.InProgress) return Result<Game>.Failure(GameErrors.GameNotInProgress);
 
         game.Status = GameStatus.Finished;
         game.Termination = GameTermination.Resignation;
@@ -267,6 +245,8 @@ public class GameService
 
     public Result<Game> EndGame(Game game, GameTermination? reason)
     {
+        if (reason is null) return Result<Game>.Failure(GameErrors.InvalidAction);
+
         game.Status = GameStatus.Finished;
         game.Termination = reason;
 
