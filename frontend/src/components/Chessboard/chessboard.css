@@ -1,0 +1,59 @@
+.chessboard {
+  width: 600px;
+  height: 600px;
+  border-radius: 5px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+}
+
+.game-over-screen {
+  border-radius: 5px;
+  width: 600px;
+  height: 600px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  z-index: 1000;
+  font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.game-over-btn {
+  width: 110px;
+  height: 50px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  background-color: #222;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-left: 41%;
+  margin-top: 313px;
+  opacity: 95%;
+  font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.game-over:hover {
+  background-color: #181818;
+}
+
+h1 {
+  position: absolute;
+  font-weight: 800;
+  top: 27%;
+  left: 0%;
+  right: 0%;
+  text-align: center;
+  color: black;
+}

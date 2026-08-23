@@ -1,0 +1,90 @@
+body {
+  background-color: #141414;
+}
+
+.profile-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+.profile-title {
+  font-size: 1.4rem;
+  margin-bottom: 25px;
+  text-align: center;
+  color: white;
+}
+
+.no-games {
+  text-align: center;
+  font-family: "Inter", Arial, sans-serif;
+  padding: 20px;
+  background: #222;
+  border-radius: 6px;
+  margin-top: 20px;
+  color: white;
+}
+
+.game-list {
+  display: grid;
+  gap: 18px;
+}
+
+.game-card {
+  border-radius: 6px;
+  padding: 18px;
+  background: #222;
+  color: white;
+  transition: box-shadow 0.2s ease;
+}
+
+.game-card:hover {
+  background-color: #181818;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.result-badge {
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: white;
+}
+
+.result-win {
+  background-color: #4caf50;
+}
+
+.result-loss {
+  background-color: #d9534f;
+}
+
+.game-date {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.game-info {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.game-link {
+  display: inline-block;
+  padding: 8px 14px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.game-link:hover {
+  background-color: #0056b3;
+}

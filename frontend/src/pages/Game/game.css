@@ -1,0 +1,29 @@
+.main-wrapper {
+  background: #141414;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  color: white;
+}
+
+.game-code {
+  position: absolute;
+  font-weight: 800;
+  top: 5%;
+  left: 0%;
+  right: 0%;
+  text-align: center;
+}
+
+.waiting-for-opponent-div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.waiting-for-opponent-text {
+  color: white;
+  margin: 20px;
+}
