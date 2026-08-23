@@ -9,6 +9,7 @@ public static class UserMappers
     {
         return new UserResponse
         {
+            Id = user.Id,
             Username = user.Username,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt

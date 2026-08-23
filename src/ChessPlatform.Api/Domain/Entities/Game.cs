@@ -47,8 +47,9 @@ public enum GameTermination
 public enum GameStatus
 {
     Waiting = 0,
-    InProgress = 1,
-    Finished = 2
+    ReadyToStart = 1,
+    InProgress = 2,
+    Finished = 3,
 }
 
 public enum Winner

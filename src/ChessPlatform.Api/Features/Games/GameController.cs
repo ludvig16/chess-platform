@@ -73,13 +73,13 @@ public class GameController : ControllerBase
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-        var result = await _gameService.MakeMove(int.Parse(userId), id, request);
+        var result = await _gameService.MakeMoveAsync(int.Parse(userId), id, request);
 
         if (result.IsFailure)
         {
             return BadRequest(result.Error);
         }
 
-        return Ok(result.Value!.ToMoveResponseDto());
+        return Ok(result.Value!.ToGameResponseDto());
     }
 }
