@@ -18,6 +18,9 @@ public class Game
     public int WhiteTimeRemainingMs { get; set; }
     public int BlackTimeRemainingMs { get; set; }
 
+    public DateTime? TurnStartedAt { get; set; }
+    public DateTime? TurnExpiresAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }

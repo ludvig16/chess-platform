@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using ChessPlatform.Api.Features.Auth;
 using ChessPlatform.Api.Features.Games;
+using ChessPlatform.Api.Features.Games.Clock;
 using ChessPlatform.Api.Features.Users;
 using ChessPlatform.Api.Infrastructure.Persistence;
 using DotNetEnv.Configuration;
@@ -78,6 +79,9 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 
 builder.Services.AddScoped<GameService>();
+
+builder.Services.AddSingleton<GameClockQueue>();
+builder.Services.AddHostedService<GameClockWorker>();
 
 builder.Services
     .AddControllers()

@@ -1,8 +1,10 @@
 ﻿using ChessDotNet;
 using ChessPlatform.Api.Domain.Entities;
 using ChessPlatform.Api.Features.Common;
+using ChessPlatform.Api.Features.Games.Clock;
 using ChessPlatform.Api.Features.Games.Dtos;
 using ChessPlatform.Api.Infrastructure.Persistence;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Move = ChessPlatform.Api.Domain.Entities.Move;
 
@@ -18,9 +20,23 @@ public class GameService
     
     private readonly ChessDbContext _db;
 
-    public GameService(ChessDbContext db)
+    private readonly GameClockQueue _gameClockQueue;
+
+    private readonly ILogger<GameService> _logger;
+
+    private readonly IHubContext<GameHub> _hubContext;
+
+    public GameService(
+        ChessDbContext db, 
+        GameClockQueue gameClockQueue, 
+        ILogger<GameService> logger, 
+        IHubContext<GameHub> hubContext
+    )
     {
         _db = db;
+        _gameClockQueue = gameClockQueue;
+        _logger = logger;
+        _hubContext = hubContext;
     }
 
     public async Task<Result<Game>> GetGame(int gameId)
@@ -38,7 +54,13 @@ public class GameService
             .Include(g => g.Moves)
             .FirstOrDefaultAsync(g => (g.WhitePlayerId == userId || g.BlackPlayerId == userId) && g.Status != GameStatus.Finished);
 
-        return game is null ? Result<Game>.Failure(GameErrors.NoJoinedGame) : Result<Game>.Success(game);
+        if (game is not null)
+        {
+            UpdateCurrentPlayerTime(game);
+            return Result<Game>.Success(game);
+        }
+
+        return Result<Game>.Failure(GameErrors.NoJoinedGame);
     }
 
     public async Task<Result<Piece[][]>> GetBoard(int gameId)
@@ -99,10 +121,24 @@ public class GameService
         return Result<Game>.Success(newGame);
     }
 
-    public static void StartGame(Game game)
+    public void StartGame(Game game)
     {
         game.Status = GameStatus.InProgress;
+
+        var currentTime = DateTime.UtcNow;
         game.StartedAt = DateTime.UtcNow;
+
+        game.TurnStartedAt = currentTime;
+        game.TurnExpiresAt = currentTime.AddMilliseconds(game.WhiteTimeRemainingMs);
+
+        _gameClockQueue.Enqueue(
+            new GameClockEvent(
+                game.Id,
+                GameClockEventType.TurnExpired,
+                game.TurnExpiresAt.Value,
+                game.TurnExpiresAt
+            )
+        );
     }
 
     public async Task<Result<Game>> JoinGameAsync(int gameId, int userId)
@@ -132,6 +168,14 @@ public class GameService
 
         _db.Games.Update(game);
         await _db.SaveChangesAsync();
+
+        await _hubContext
+            .Clients
+            .Group($"game:{game.Id}")
+            .SendAsync(
+                "GameState",
+                game.ToGameResponseDto()
+            );
         
         return Result<Game>.Success(game);
     }
@@ -183,6 +227,58 @@ public class GameService
         };
     }
 
+    public bool CheckIfGameTimeHasExpired(Game game)
+    {
+        var currentTime = DateTimeOffset.UtcNow;
+        return game.Status == GameStatus.InProgress && game.TurnExpiresAt <= currentTime;
+    }
+
+    private static void UpdateCurrentPlayerTime(Game game)
+    {
+        var currentTime = DateTime.UtcNow;
+
+        if (game.TurnStartedAt is null) return;
+
+        var elapsedMs = (int)(currentTime - game.TurnStartedAt.Value).TotalMilliseconds;
+
+        if (game.SideToMove == PieceColor.White)
+        {
+            game.WhiteTimeRemainingMs = Math.Max(
+                0,
+                game.WhiteTimeRemainingMs - elapsedMs
+            );
+        }
+        else
+        {
+            game.BlackTimeRemainingMs = Math.Max(
+                0,
+                game.BlackTimeRemainingMs - elapsedMs
+            );
+        }
+    }
+
+    private void StartCurrentTurn(Game game)
+    {
+        var currentTime = DateTime.UtcNow;
+
+        game.TurnStartedAt = currentTime;
+
+        var remainingMs = game.SideToMove == PieceColor.White
+            ? game.WhiteTimeRemainingMs
+            : game.BlackTimeRemainingMs;
+
+        game.TurnExpiresAt = currentTime.AddMilliseconds(remainingMs);
+
+        _gameClockQueue.Enqueue(
+            new GameClockEvent(
+                game.Id,
+                GameClockEventType.TurnExpired,
+                game.TurnExpiresAt.Value,
+                game.TurnExpiresAt
+            )
+        );
+    }
+
     public async Task<Result<Game>> MakeMoveAsync(int playerId, int gameId, CreateMoveRequest request)
     {
         await using var transaction = await _db.Database.BeginTransactionAsync();
@@ -192,6 +288,28 @@ public class GameService
         if (game is null) return Result<Game>.Failure(GameErrors.GameNotFound);
 
         if (game.Status != GameStatus.InProgress) return Result<Game>.Failure(GameErrors.GameNotInProgress);
+
+        _logger.LogInformation(
+            "MakeMove starting. GameId={GameId}, PlayerId={PlayerId}, SideToMove={SideToMove}, WhiteTime={WhiteTime}ms, BlackTime={BlackTime}ms, TurnStartedAt={TurnStartedAt}, TurnExpiresAt={TurnExpiresAt}",
+            game.Id,
+            playerId,
+            game.SideToMove,
+            game.WhiteTimeRemainingMs,
+            game.BlackTimeRemainingMs,
+            game.TurnStartedAt,
+            game.TurnExpiresAt
+        );
+
+
+        if (CheckIfGameTimeHasExpired(game))
+        {
+            EndGame(game, GameTermination.Timeout);
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Result<Game>.Success(game);
+        }
         
         var chess = new ChessGame(game.CurrentFen);
         
@@ -202,10 +320,23 @@ public class GameService
         var moveResult = TryApplyMove(chess, player.Value, request);
 
         if (moveResult.IsFailure) return Result<Game>.Failure(moveResult.Error);
+
+        UpdateCurrentPlayerTime(game);
         
         var databaseMove = CreateMove(game, chess, request);
         
         _db.Moves.Add(databaseMove);
+
+        _logger.LogInformation(
+            "MakeMove completed. GameId={GameId}, PlayerId={PlayerId}, SideToMove={SideToMove}, WhiteTime={WhiteTime}ms, BlackTime={BlackTime}ms, TurnStartedAt={TurnStartedAt}, TurnExpiresAt={TurnExpiresAt}",
+            game.Id,
+            playerId,
+            game.SideToMove,
+            game.WhiteTimeRemainingMs,
+            game.BlackTimeRemainingMs,
+            game.TurnStartedAt,
+            game.TurnExpiresAt
+        );
 
         var opponent = player.Value == Player.White ? Player.Black : Player.White;
 
@@ -214,6 +345,10 @@ public class GameService
         if (gameTermination is not null)
         {
             EndGame(game, gameTermination);
+        }
+        else
+        {
+            StartCurrentTurn(game);
         }
 
         await _db.SaveChangesAsync();
@@ -251,6 +386,17 @@ public class GameService
         game.Termination = reason;
 
         game.Winner = game.SideToMove == PieceColor.White ? Winner.Black : Winner.White;
+
+        _logger.LogInformation(
+            "Game terminated. GameId={GameId}, Reason={Reason}, SideToMove={SideToMove}, WhiteTime={WhiteTime}ms, BlackTime={BlackTime}ms, TurnStartedAt={TurnStartedAt}, TurnExpiresAt={TurnExpiresAt}",
+            game.Id,
+            reason,
+            game.SideToMove,
+            game.WhiteTimeRemainingMs,
+            game.BlackTimeRemainingMs,
+            game.TurnStartedAt,
+            game.TurnExpiresAt
+        );
         
         return Result<Game>.Success(game);
     }
