@@ -42,8 +42,9 @@ export default function Home() {
       toast.error(error.description);
     };
 
-    const handleJoinedGame = (gameId: Number) => {
-      navigate(`/play/${gameId}`);
+    const handleJoinedGame = (game: any) => {
+      navigate(`/play/${game.id}`);
+      location.reload();
     };
 
     connection.on("GameState", handleGameState);
@@ -65,11 +66,11 @@ export default function Home() {
     const token = sessionStorage.getItem("accessToken");
 
     try {
-      await axios.post(
+      const response = await axios.post(
         "http://localhost:5038/api/games",
         {
           ChosenColor: "White",
-          TimeLimitMs: 240000,
+          TimeLimitMs: 60000,
         },
         {
           headers: {
@@ -77,6 +78,9 @@ export default function Home() {
           },
         },
       );
+
+      navigate(`/play/${response.data.id}`);
+      location.reload();
     } catch (error: any) {
       console.log(error.response.data);
     }

@@ -79,7 +79,6 @@ export default function Game() {
 
   useEffect(() => {
     checkAuth();
-    console.log("YOOO", user);
   }, [isAuthenticated]);
 
   async function connectedToSocket() {
@@ -112,7 +111,11 @@ export default function Game() {
     connectedToSocket();
 
     connection.on("ReceiveError", (error) => {
-      console.log(error);
+      console.error(error);
+
+      if (error.code == "Game.NoJoinedGame") {
+        navigate("/");
+      }
     });
 
     connection.on("GameState", (gameState) => {
@@ -140,8 +143,8 @@ export default function Game() {
         checkmate: chess.current.isCheckmate(),
         stalemate: chess.current.isStalemate(),
         draw: chess.current.isDraw(),
-        noTime: false,
-        ongoingGame: gameState.status === "ReadyToStart",
+        noTime: gameState.termination === "Timeout",
+        ongoingGame: gameState.status === "InProgress",
         currentTurn: gameState.sideToMove.toLowerCase(),
         whitePlayerId: gameState.whitePlayerId,
         blackPlayerId: gameState.blackPlayerId,
@@ -193,7 +196,7 @@ export default function Game() {
       <Playerbar
         className="opponent-player-bar"
         playerData={
-          String(user?.id) === gameState.whitePlayerId
+          String(user?.id) == gameState.whitePlayerId
             ? blackPlayerData
             : whitePlayerData
         }
@@ -208,7 +211,7 @@ export default function Game() {
       <Playerbar
         className="player-bar"
         playerData={
-          String(user?.id) === gameState.whitePlayerId
+          String(user?.id) == gameState.whitePlayerId
             ? whitePlayerData
             : blackPlayerData
         }

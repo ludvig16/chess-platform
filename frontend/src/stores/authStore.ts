@@ -42,13 +42,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    /*
-    await axios.post(
-      `${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`,
-      {},
-      { withCredentials: true },
-    );
-    */
     sessionStorage.removeItem("accessToken");
     set({ isAuthenticated: false, user: null });
   },
